@@ -406,6 +406,72 @@ body {
 .api-test-result.success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--success); }
 .api-test-result.error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: var(--danger); }
 
+/* ── META STATS ──────────────────────────────────── */
+.meta-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.meta-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.meta-stat-card.stat-pop {
+  animation: statPopIn .35s ease forwards;
+}
+@keyframes statPopIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+.meta-stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.35); }
+.meta-stat-icon { font-size: 24px; flex-shrink: 0; }
+.meta-stat-value {
+  font-size: 26px; font-weight: 800;
+  color: var(--text-primary); line-height: 1;
+}
+.meta-stat-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px; font-weight: 600;
+  color: var(--accent-light);
+}
+.meta-stat-label {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: .06em; margin-top: 4px;
+}
+
+/* ── REFRESH / SYNC ──────────────────────────────── */
+.btn-refresh {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  background: rgba(99,102,241,.1); color: var(--accent-light);
+  border: 1px solid rgba(99,102,241,.3); border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-refresh:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-refresh:hover svg { animation: spin .6s linear infinite; }
+
+.sync-status {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 10px;
+  font-size: 11px; color: var(--text-muted);
+  padding: 6px 10px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.sync-status.synced { color: var(--success); border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.05); }
+.sync-dot { font-size: 8px; }
+.sync-dot.idle { color: var(--text-muted); }
+
 /* ── TOAST ───────────────────────────────────────── */
 .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
 .toast {
@@ -454,10 +520,13 @@ body {
   .bom-layout { grid-template-columns: 1fr; }
   .bom-summary-grid { grid-template-columns: 1fr 1fr; }
   .status-text { display: none; }
+  .meta-stats { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 600px) {
   .page { padding: 16px 14px 30px; }
   .product-grid { grid-template-columns: 1fr; }
   .bom-summary-grid { grid-template-columns: 1fr; }
   .search-filters { flex-direction: column; }
+  .meta-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .meta-stat-value { font-size: 20px; }
 }
