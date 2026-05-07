@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SI Product Hub — Sales Intelligence Platform</title>
+  <meta name="description" content="ระบบค้นหาสินค้า สร้าง BOM และเขียน Proposal สำหรับทีม Sales และ Pre-sales ของบริษัท System Integrator" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('si_theme') || 'dark');</script>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">SI Product Hub</span>
+        <span class="brand-sub">Sales Platform</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">เครื่องมือ</div>
+      <button class="nav-item active" data-page="search" id="nav-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>ค้นหาสินค้า</span>
+      </button>
+      <button class="nav-item" data-page="datasheet" id="nav-datasheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Datasheet</span>
+      </button>
+      <button class="nav-item" data-page="compare" id="nav-compare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="9" height="18" rx="2"/><rect x="13" y="3" width="9" height="18" rx="2"/></svg>
+        <span>เปรียบเทียบ</span>
+        <span class="nav-badge" id="compare-badge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" data-page="bom" id="nav-bom">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>สร้าง BOM</span>
+      </button>
+      <button class="nav-item" data-page="proposal" id="nav-proposal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Proposal</span>
+      </button>
+      <button class="nav-item" data-page="pricing" id="nav-pricing">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>ตรวจราคา</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="nav-section-label">การตั้งค่า</div>
+      <button class="nav-item" data-page="settings" id="nav-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+        <span>ตั้งค่า API</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-breadcrumb">
+          <span class="breadcrumb-root">SI Product Hub</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="breadcrumb-current" id="breadcrumb-current">ค้นหาสินค้า</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode" title="สลับ Light / Dark mode">
+          <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+        <div class="api-status" id="api-status">
+          <span class="status-dot unconfigured"></span>
+          <span class="status-text" id="api-status-text">ยังไม่ได้ตั้งค่า API</span>
+        </div>
+        <div class="user-chip">
+          <div class="user-avatar" id="user-avatar-display">S</div>
+          <span id="user-name-display">Sales</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGES -->
+    <div class="page-container">
+
+      <!-- PAGE: SEARCH -->
+      <section class="page active" id="page-search">
+        <div class="page-header">
+          <h1>ค้นหาสินค้า</h1>
+          <p>ค้นหาสินค้าจาก Product Master ด้วย keyword, category หรือ vendor</p>
+        </div>
+        <div class="search-bar-wrapper">
+          <div class="search-input-group">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="search-query" placeholder="ค้นหา เช่น Cisco switch 48 port, FortiGate firewall..." class="search-input" />
+            <button class="btn-search" id="btn-do-search">ค้นหา</button>
+          </div>
+          <div class="search-filters">
+            <select id="filter-category" class="filter-select">
+              <option value="">ทุก Category</option>
+              <option value="Switch">Switch</option>
+              <option value="Firewall">Firewall</option>
+              <option value="Wi-Fi AP">Wi-Fi AP</option>
+              <option value="Router">Router</option>
+              <option value="Server">Server</option>
+            </select>
+            <select id="filter-vendor" class="filter-select">
+              <option value="">ทุก Vendor</option>
+              <option value="Cisco">Cisco</option>
+              <option value="HP Aruba">HP Aruba</option>
+              <option value="Fortinet">Fortinet</option>
+              <option value="Palo Alto">Palo Alto</option>
+              <option value="Aruba">Aruba</option>
+            </select>
+            <input type="number" id="filter-max-price" placeholder="ราคาสูงสุด (THB)" class="filter-input" />
+            <select id="filter-segment" class="filter-select">
+              <option value="">ทุก Segment</option>
+              <option value="SMB">SMB</option>
+              <option value="mid-market">Mid-market</option>
+              <option value="enterprise">Enterprise</option>
+              <option value="government">Government</option>
+            </select>
+          </div>
+        </div>
+        <div class="results-area" id="search-results-area">
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <p>พิมพ์คำค้นหาแล้วกด "ค้นหา"</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: DATASHEET -->
+      <section class="page" id="page-datasheet">
+        <div class="page-header">
+          <h1>Datasheet & Technical Specs</h1>
+          <p>ดู spec ละเอียดของสินค้าจาก Datasheet Index</p>
+        </div>
+        <div class="card lookup-card">
+          <div class="lookup-group">
+            <input type="text" id="ds-sku" placeholder="ใส่ SKU เช่น CSC-C9300-48P" class="filter-input" style="flex:1" />
+            <span class="or-divider">หรือ</span>
+            <input type="text" id="ds-model" placeholder="Model name" class="filter-input" />
+            <input type="text" id="ds-vendor" placeholder="Vendor" class="filter-input" />
+            <button class="btn-primary" id="btn-get-datasheet">ดู Datasheet</button>
+          </div>
+        </div>
+        <div id="datasheet-result" class="results-area">
+          <div class="empty-state"><div class="empty-icon">📄</div><p>กรอก SKU หรือ Model เพื่อดู Datasheet</p></div>
+        </div>
+      </section>
+
+      <!-- PAGE: COMPARE -->
+      <section class="page" id="page-compare">
+        <div class="page-header">
+          <h1>เปรียบเทียบสินค้า</h1>
+          <p>เปรียบเทียบ 2–4 สินค้าแบบ side-by-side</p>
+        </div>
+        <div class="card">
+          <div class="compare-sku-inputs" id="compare-sku-inputs">
+            <div class="compare-sku-row">
+              <input type="text" class="filter-input compare-sku-field" placeholder="SKU 1" />
+              <button class="btn-icon remove-compare-sku" title="ลบ">✕</button>
+            </div>
+            <div class="compare-sku-row">
+              <input type="text" class="filter-input compare-sku-field" placeholder="SKU 2" />
+              <button class="btn-icon remove-compare-sku" title="ลบ">✕</button>
+            </div>
+          </div>
+          <div class="compare-actions">
+            <button class="btn-secondary" id="btn-add-compare-sku">+ เพิ่ม SKU</button>
+            <button class="btn-primary" id="btn-do-compare">เปรียบเทียบ</button>
+          </div>
+        </div>
+        <div id="compare-result" class="results-area">
+          <div class="empty-state"><div class="empty-icon">⚖️</div><p>ใส่ SKU ที่ต้องการเปรียบเทียบแล้วกด "เปรียบเทียบ"</p></div>
+        </div>
+      </section>
+
+      <!-- PAGE: BOM -->
+      <section class="page" id="page-bom">
+        <div class="page-header">
+          <h1>สร้าง BOM</h1>
+          <p>สร้าง Bill of Materials และบันทึกลง Google Sheets</p>
+        </div>
+        <div class="bom-layout">
+          <div class="bom-form card">
+            <div class="form-section">
+              <h3 class="form-section-title">ข้อมูลโปรเจกต์</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>ชื่อโปรเจกต์ *</label>
+                  <input type="text" id="bom-project" class="form-input" placeholder="เช่น Office Network - SCG HQ" />
+                </div>
+                <div class="form-group">
+                  <label>ชื่อลูกค้า *</label>
+                  <input type="text" id="bom-customer" class="form-input" placeholder="เช่น บริษัท ABC จำกัด" />
+                </div>
+                <div class="form-group">
+                  <label>จัดทำโดย *</label>
+                  <input type="text" id="bom-prepared-by" class="form-input" placeholder="ชื่อ Sales / Engineer" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3 class="form-section-title">รายการสินค้า (Hardware)</h3>
+              <div id="bom-items-list" class="bom-items-list">
+                <div class="bom-item-row" data-index="0">
+                  <input type="text" class="form-input bom-sku" placeholder="SKU" />
+                  <input type="number" class="form-input bom-qty" placeholder="จำนวน" min="1" value="1" />
+                  <input type="text" class="form-input bom-notes" placeholder="หมายเหตุ" />
+                  <button class="btn-icon remove-bom-item">✕</button>
+                </div>
+              </div>
+              <button class="btn-secondary btn-sm" id="btn-add-bom-item">+ เพิ่มสินค้า</button>
+            </div>
+
+            <div class="form-section">
+              <h3 class="form-section-title">บริการ (Services) <span class="optional-badge">ไม่บังคับ</span></h3>
+              <div id="bom-services-list" class="bom-items-list"></div>
+              <button class="btn-secondary btn-sm" id="btn-add-bom-service">+ เพิ่มบริการ</button>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary btn-lg" id="btn-generate-bom">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                สร้าง BOM
+              </button>
+            </div>
+          </div>
+
+          <div id="bom-result" class="bom-result-panel">
+            <div class="empty-state"><div class="empty-icon">📋</div><p>กรอกข้อมูลและกด "สร้าง BOM"</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: PROPOSAL -->
+      <section class="page" id="page-proposal">
+        <div class="page-header">
+          <h1>บันทึก Proposal</h1>
+          <p>บันทึก proposal ที่เสร็จแล้วลง Google Sheets</p>
+        </div>
+        <div class="card">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>ชื่อลูกค้า *</label>
+              <input type="text" id="prop-customer" class="form-input" placeholder="บริษัท ABC จำกัด" />
+            </div>
+            <div class="form-group">
+              <label>ชื่อโปรเจกต์ *</label>
+              <input type="text" id="prop-project" class="form-input" placeholder="Office Network Upgrade" />
+            </div>
+            <div class="form-group">
+              <label>จัดทำโดย *</label>
+              <input type="text" id="prop-prepared-by" class="form-input" placeholder="ชื่อ Sales / Engineer" />
+            </div>
+            <div class="form-group">
+              <label>BOM ID (ถ้ามี)</label>
+              <input type="text" id="prop-bom-id" class="form-input" placeholder="BOM-20240401-xxx" />
+            </div>
+          </div>
+          <div class="form-section">
+            <h3 class="form-section-title">เนื้อหา Proposal</h3>
+            <div class="form-group">
+              <label>Executive Summary *</label>
+              <textarea id="prop-exec-summary" class="form-textarea" rows="4" placeholder="สรุปปัญหาของลูกค้า สิ่งที่เราเสนอ และประโยชน์ที่ได้รับ..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Understanding (เข้าใจ Environment ลูกค้า)</label>
+              <textarea id="prop-understanding" class="form-textarea" rows="4" placeholder="แสดงว่าเข้าใจ environment และ pain points ของลูกค้า..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Solution Architecture</label>
+              <textarea id="prop-solution" class="form-textarea" rows="5" placeholder="อธิบาย architecture และการเชื่อมโยง component กับ requirement..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Recommendation</label>
+              <textarea id="prop-recommendation" class="form-textarea" rows="4" placeholder="ทำไมเลือกยี่ห้อ/รุ่นนี้ และทางเลือกที่พิจารณาแล้วปฏิเสธ..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Next Steps</label>
+              <textarea id="prop-next-steps" class="form-textarea" rows="3" placeholder="ขั้นตอนถัดไปและ deadline..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary btn-lg" id="btn-save-proposal">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              บันทึก Proposal
+            </button>
+          </div>
+        </div>
+        <div id="proposal-result" class="results-area mt-16"></div>
+      </section>
+
+      <!-- PAGE: PRICING -->
+      <section class="page" id="page-pricing">
+        <div class="page-header">
+          <h1>ตรวจราคาสินค้า</h1>
+          <p>ดูราคาและสถานะ availability ของสินค้าหลาย SKU พร้อมกัน</p>
+        </div>
+        <div class="card">
+          <div class="form-group">
+            <label>ใส่ SKU (คั่นด้วยบรรทัดใหม่)</label>
+            <textarea id="pricing-skus" class="form-textarea" rows="6" placeholder="CSC-C9300-48P&#10;HP-CX6300-48G&#10;FTN-FG100F"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" id="btn-get-pricing">ตรวจราคา</button>
+          </div>
+        </div>
+        <div id="pricing-result" class="results-area mt-16">
+          <div class="empty-state"><div class="empty-icon">💰</div><p>ใส่ SKU แล้วกด "ตรวจราคา"</p></div>
+        </div>
+      </section>
+
+      <!-- PAGE: SETTINGS -->
+      <section class="page" id="page-settings">
+        <div class="page-header">
+          <h1>ตั้งค่า API</h1>
+          <p>กำหนด Apps Script Web App URL และข้อมูลผู้ใช้</p>
+        </div>
+        <div class="card settings-card">
+          <div class="settings-section">
+            <h3>Apps Script Web App</h3>
+            <div class="form-group">
+              <label>Web App URL *</label>
+              <input type="url" id="settings-api-url" class="form-input" placeholder="https://script.google.com/macros/s/..." />
+              <p class="field-hint">Deploy → New Deployment → Web App → Copy URL</p>
+            </div>
+            <button class="btn-secondary" id="btn-test-api">ทดสอบการเชื่อมต่อ</button>
+            <div id="api-test-result" class="api-test-result" style="display:none"></div>
+          </div>
+          <div class="settings-section">
+            <h3>ข้อมูลผู้ใช้</h3>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>ชื่อ</label>
+                <input type="text" id="settings-user-name" class="form-input" placeholder="ชื่อ Sales / Engineer" />
+              </div>
+              <div class="form-group">
+                <label>บทบาท</label>
+                <select id="settings-user-role" class="filter-select form-input">
+                  <option value="sales">Sales</option>
+                  <option value="engineer">Engineer</option>
+                  <option value="pre-sales">Pre-Sales</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" id="btn-save-settings">บันทึกการตั้งค่า</button>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- TOAST NOTIFICATIONS -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loading-overlay" style="display:none">
+    <div class="loading-spinner">
+      <div class="spinner-ring"></div>
+      <p class="loading-text" id="loading-text">กำลังโหลด...</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
