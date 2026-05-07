@@ -5,8 +5,7 @@ const state = {
   userRole: localStorage.getItem('si_user_role') || 'sales',
   compareSkus: [],
   theme: localStorage.getItem('si_theme') || 'dark',
-  metadata: null,       // cached metadata from Sheets
-  metadata: null,       // cached metadata from Sheets
+  metadata: null,
 };
 
 // ── THEME ──────────────────────────────────────────
@@ -28,14 +27,9 @@ async function callApi(action, params) {
   if (!state.apiUrl) { showToast('กรุณาตั้งค่า API URL ก่อน', 'error'); navigate('settings'); throw new Error('No API URL'); }
   showLoading(`กำลังเรียก ${action}...`);
   try {
-    // Apps Script requires text/plain to avoid CORS preflight (OPTIONS) rejection.
-    // redirect:'follow' is needed because Apps Script 302-redirects POST to googleusercontent.com
-    // Apps Script requires text/plain to avoid CORS preflight (OPTIONS) rejection.
-    // redirect:'follow' is needed because Apps Script 302-redirects POST to googleusercontent.com
+    // text/plain avoids CORS preflight; redirect:follow handles Apps Script 302
     const res = await fetch(state.apiUrl, {
       method: 'POST',
-      redirect: 'follow',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, params }),
@@ -89,11 +83,10 @@ async function loadMetadata(silent = false) {
 }
 
 function populateFilterDropdowns(data) {
-  // Rebuild each select, keeping the first "ทั้งหมด" option
   const maps = [
     { id: 'filter-category', items: data.categories, label: 'ทุก Category' },
-    { id: 'filter-vendor', items: data.vendors, label: 'ทุก Vendor' },
-    { id: 'filter-segment', items: data.segments, label: 'ทุก Segment' },
+    { id: 'filter-vendor',   items: data.vendors,    label: 'ทุก Vendor' },
+    { id: 'filter-segment',  items: data.segments,   label: 'ทุก Segment' },
   ];
   maps.forEach(({ id, items, label }) => {
     const sel = document.getElementById(id);
@@ -105,64 +98,18 @@ function populateFilterDropdowns(data) {
 }
 
 function updateSyncBadge(data) {
-  const el = document.getElementById('sync-status');
-  if (!el) return;
-  el.innerHTML = `
-    <span class="sync-dot">●</span>
-    <span>${data.product_count} สินค้า · Sync ${data.synced_at}</span>`;
-  el.classList.add('synced');
-}
-
-// ── METADATA / REFRESH ─────────────────────────────
-async function loadMetadata(silent = false) {
-  if (!state.apiUrl) return;
-  try {
-    if (!silent) showLoading('กำลัง Sync ข้อมูลจาก Sheets...');
-    const data = await callApi('getMetadata', {});
-    state.metadata = data;
-    populateFilterDropdowns(data);
-    updateSyncBadge(data);
-    if (!silent) showToast(`Sync สำเร็จ — ${data.product_count} สินค้า (${data.synced_at})`, 'success');
-  } catch (e) {
-    if (!silent) showToast('Sync ล้มเหลว: ' + e.message, 'error');
-  }
-}
-
-function populateFilterDropdowns(data) {
-  // Rebuild each select, keeping the first "ทั้งหมด" option
-  const maps = [
-    { id: 'filter-category', items: data.categories, label: 'ทุก Category' },
-    { id: 'filter-vendor', items: data.vendors, label: 'ทุก Vendor' },
-    { id: 'filter-segment', items: data.segments, label: 'ทุก Segment' },
-  ];
-  maps.forEach(({ id, items, label }) => {
-    const sel = document.getElementById(id);
-    if (!sel) return;
-    const current = sel.value;
-    sel.innerHTML = `<option value="">${label}</option>` +
-      items.map(v => `<option value="${v}"${v === current ? ' selected' : ''}>${v}</option>`).join('');
-  });
-}
-
-function updateSyncBadge(data) {
-  // Sync status bar
   const el = document.getElementById('sync-status');
   if (el) {
-    el.innerHTML = `
-      <span class="sync-dot">●</span>
-      <span>${data.product_count} สินค้า · Sync ${data.synced_at}</span>`;
+    el.innerHTML = `<span class="sync-dot">●</span><span>${data.product_count} สินค้า · Sync ${data.synced_at}</span>`;
     el.classList.add('synced');
   }
-
-  // Stats cards — reveal & fill
   const statsEl = document.getElementById('meta-stats');
   if (statsEl) {
-    document.getElementById('stat-val-products').textContent = data.product_count;
+    document.getElementById('stat-val-products').textContent   = data.product_count;
     document.getElementById('stat-val-categories').textContent = data.categories.length;
-    document.getElementById('stat-val-vendors').textContent = data.vendors.length;
-    document.getElementById('stat-val-synced').textContent = data.synced_at.split(' ')[1] || data.synced_at;
+    document.getElementById('stat-val-vendors').textContent    = data.vendors.length;
+    document.getElementById('stat-val-synced').textContent     = data.synced_at.split(' ')[1] || data.synced_at;
     statsEl.style.display = 'grid';
-    // Animate each card
     statsEl.querySelectorAll('.meta-stat-card').forEach((c, i) => {
       c.style.animationDelay = `${i * 60}ms`;
       c.classList.add('stat-pop');
@@ -462,9 +409,6 @@ function saveSettings() {
   localStorage.setItem('si_user_role', state.userRole);
   updateUserDisplay();
   showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
-  // Reload metadata from Sheets with new URL
-  loadMetadata(false);
-  // Reload metadata from Sheets with new URL
   loadMetadata(false);
 }
 
@@ -490,7 +434,6 @@ async function testApi() {
   res.className = 'api-test-result';
   res.textContent = 'กำลังทดสอบ...';
   try {
-    const r = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
     const r = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
     const d = await r.json();
     res.className = 'api-test-result success';
@@ -545,7 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
   document.getElementById('btn-test-api').addEventListener('click', testApi);
   document.getElementById('btn-refresh-data')?.addEventListener('click', () => loadMetadata(false));
-  document.getElementById('btn-refresh-data')?.addEventListener('click', () => loadMetadata(false));
 
   // Init
   loadSettings();
@@ -555,9 +497,5 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('bom-prepared-by').value = state.userName;
   document.getElementById('prop-prepared-by').value = state.userName;
 
-  // Silently load metadata if API already configured
-  loadMetadata(true);
-
-  // Silently load metadata if API already configured
   loadMetadata(true);
 });
