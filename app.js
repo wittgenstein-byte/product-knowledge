@@ -6,6 +6,7 @@ const state = {
   compareSkus: [],
   theme: localStorage.getItem('si_theme') || 'dark',
   metadata: null,       // cached metadata from Sheets
+  metadata: null,       // cached metadata from Sheets
 };
 
 // ── THEME ──────────────────────────────────────────
@@ -29,8 +30,12 @@ async function callApi(action, params) {
   try {
     // Apps Script requires text/plain to avoid CORS preflight (OPTIONS) rejection.
     // redirect:'follow' is needed because Apps Script 302-redirects POST to googleusercontent.com
+    // Apps Script requires text/plain to avoid CORS preflight (OPTIONS) rejection.
+    // redirect:'follow' is needed because Apps Script 302-redirects POST to googleusercontent.com
     const res = await fetch(state.apiUrl, {
       method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, params }),
@@ -47,7 +52,7 @@ function navigate(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page)?.classList.add('active');
   document.getElementById('nav-' + page)?.classList.add('active');
-  const labels = { search:'ค้นหาสินค้า', datasheet:'Datasheet', compare:'เปรียบเทียบ', bom:'สร้าง BOM', proposal:'Proposal', pricing:'ตรวจราคา', settings:'ตั้งค่า API' };
+  const labels = { search: 'ค้นหาสินค้า', datasheet: 'Datasheet', compare: 'เปรียบเทียบ', bom: 'สร้าง BOM', proposal: 'Proposal', pricing: 'ตรวจราคา', settings: 'ตั้งค่า API' };
   document.getElementById('breadcrumb-current').textContent = labels[page] || page;
 }
 
@@ -87,8 +92,48 @@ function populateFilterDropdowns(data) {
   // Rebuild each select, keeping the first "ทั้งหมด" option
   const maps = [
     { id: 'filter-category', items: data.categories, label: 'ทุก Category' },
-    { id: 'filter-vendor',   items: data.vendors,    label: 'ทุก Vendor' },
-    { id: 'filter-segment',  items: data.segments,   label: 'ทุก Segment' },
+    { id: 'filter-vendor', items: data.vendors, label: 'ทุก Vendor' },
+    { id: 'filter-segment', items: data.segments, label: 'ทุก Segment' },
+  ];
+  maps.forEach(({ id, items, label }) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = `<option value="">${label}</option>` +
+      items.map(v => `<option value="${v}"${v === current ? ' selected' : ''}>${v}</option>`).join('');
+  });
+}
+
+function updateSyncBadge(data) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.innerHTML = `
+    <span class="sync-dot">●</span>
+    <span>${data.product_count} สินค้า · Sync ${data.synced_at}</span>`;
+  el.classList.add('synced');
+}
+
+// ── METADATA / REFRESH ─────────────────────────────
+async function loadMetadata(silent = false) {
+  if (!state.apiUrl) return;
+  try {
+    if (!silent) showLoading('กำลัง Sync ข้อมูลจาก Sheets...');
+    const data = await callApi('getMetadata', {});
+    state.metadata = data;
+    populateFilterDropdowns(data);
+    updateSyncBadge(data);
+    if (!silent) showToast(`Sync สำเร็จ — ${data.product_count} สินค้า (${data.synced_at})`, 'success');
+  } catch (e) {
+    if (!silent) showToast('Sync ล้มเหลว: ' + e.message, 'error');
+  }
+}
+
+function populateFilterDropdowns(data) {
+  // Rebuild each select, keeping the first "ทั้งหมด" option
+  const maps = [
+    { id: 'filter-category', items: data.categories, label: 'ทุก Category' },
+    { id: 'filter-vendor', items: data.vendors, label: 'ทุก Vendor' },
+    { id: 'filter-segment', items: data.segments, label: 'ทุก Segment' },
   ];
   maps.forEach(({ id, items, label }) => {
     const sel = document.getElementById(id);
@@ -112,10 +157,10 @@ function updateSyncBadge(data) {
   // Stats cards — reveal & fill
   const statsEl = document.getElementById('meta-stats');
   if (statsEl) {
-    document.getElementById('stat-val-products').textContent   = data.product_count;
+    document.getElementById('stat-val-products').textContent = data.product_count;
     document.getElementById('stat-val-categories').textContent = data.categories.length;
-    document.getElementById('stat-val-vendors').textContent    = data.vendors.length;
-    document.getElementById('stat-val-synced').textContent     = data.synced_at.split(' ')[1] || data.synced_at;
+    document.getElementById('stat-val-vendors').textContent = data.vendors.length;
+    document.getElementById('stat-val-synced').textContent = data.synced_at.split(' ')[1] || data.synced_at;
     statsEl.style.display = 'grid';
     // Animate each card
     statsEl.querySelectorAll('.meta-stat-card').forEach((c, i) => {
@@ -258,23 +303,23 @@ function renderCompare(data) {
   const products = data.products || [];
   const dims = ['price_thb', 'availability', 'lead_time_weeks', 'distributor'];
   const dimLabels = { price_thb: 'ราคา (THB)', availability: 'Availability', lead_time_weeks: 'Lead Time (Wk)', distributor: 'Distributor' };
-  const specKeys = ['throughput','ports','poe_budget_w','uplink','stacking','warranty_years'];
-  const specLabels = { throughput:'Throughput', ports:'Ports', poe_budget_w:'PoE (W)', uplink:'Uplink', stacking:'Stacking', warranty_years:'Warranty (Yr)' };
+  const specKeys = ['throughput', 'ports', 'poe_budget_w', 'uplink', 'stacking', 'warranty_years'];
+  const specLabels = { throughput: 'Throughput', ports: 'Ports', poe_budget_w: 'PoE (W)', uplink: 'Uplink', stacking: 'Stacking', warranty_years: 'Warranty (Yr)' };
 
-  const headers = products.map(p => `<th>${p.vendor}<br><small style="font-weight:400;color:var(--text-secondary)">${p.model||p.sku}</small></th>`).join('');
+  const headers = products.map(p => `<th>${p.vendor}<br><small style="font-weight:400;color:var(--text-secondary)">${p.model || p.sku}</small></th>`).join('');
   const dimRows = dims.map(k => {
     const vals = products.map(p => p[k] ?? '-');
     const cells = vals.map(v => `<td>${k === 'price_thb' ? fmt(v) : v}</td>`).join('');
     return `<tr><td>${dimLabels[k]}</td>${cells}</tr>`;
   }).join('');
   const specRows = specKeys.map(k => {
-    const cells = products.map(p => `<td>${(p.specs||{})[k] ?? '-'}</td>`).join('');
+    const cells = products.map(p => `<td>${(p.specs || {})[k] ?? '-'}</td>`).join('');
     return `<tr><td>${specLabels[k]}</td>${cells}</tr>`;
   }).join('');
 
   el.innerHTML = `<div class="compare-table-wrap"><table class="compare-table">
     <thead><tr><th>รายการ</th>${headers}</tr></thead>
-    <tbody>${dimRows}<tr><td colspan="${products.length+1}" style="background:var(--bg-surface);font-weight:700;font-size:11px;color:var(--text-muted);text-transform:uppercase">Technical Specs</td></tr>${specRows}</tbody>
+    <tbody>${dimRows}<tr><td colspan="${products.length + 1}" style="background:var(--bg-surface);font-weight:700;font-size:11px;color:var(--text-muted);text-transform:uppercase">Technical Specs</td></tr>${specRows}</tbody>
   </table></div>`;
 }
 
@@ -335,7 +380,7 @@ function renderBOMResult(d) {
   const panel = document.getElementById('bom-result');
   const lineRows = (d.lines || []).map(l => l.error
     ? `<tr><td>${l.line}</td><td>${l.sku}</td><td colspan="4" style="color:var(--danger)">${l.error}</td></tr>`
-    : `<tr><td>${l.line}</td><td style="font-family:monospace;font-size:11px">${l.sku}</td><td>${l.model||''}</td><td>${l.qty}</td><td>${fmt(l.unit_price_thb)}</td><td>${fmt(l.total_price_thb)}</td></tr>`
+    : `<tr><td>${l.line}</td><td style="font-family:monospace;font-size:11px">${l.sku}</td><td>${l.model || ''}</td><td>${l.qty}</td><td>${fmt(l.unit_price_thb)}</td><td>${fmt(l.total_price_thb)}</td></tr>`
   ).join('');
   panel.innerHTML = `<div class="bom-result-inner">
     <div class="bom-id-badge">${d.bom_id}</div>
@@ -392,7 +437,7 @@ function renderPricing(pricing) {
   const el = document.getElementById('pricing-result');
   if (pricing.length === 0) { el.innerHTML = `<div class="empty-state"><div class="empty-icon">❌</div><p>ไม่พบข้อมูลราคา</p></div>`; return; }
   const rows = pricing.map(p => p.found
-    ? `<tr><td><span class="sku-mono">${p.sku}</span></td><td>${p.model||'-'}</td><td><span class="price-value">${fmt(p.price_thb)}</span></td><td>${availBadge(p.availability)}</td><td style="font-size:11px;color:var(--text-muted)">${p.last_updated||'-'}</td></tr>`
+    ? `<tr><td><span class="sku-mono">${p.sku}</span></td><td>${p.model || '-'}</td><td><span class="price-value">${fmt(p.price_thb)}</span></td><td>${availBadge(p.availability)}</td><td style="font-size:11px;color:var(--text-muted)">${p.last_updated || '-'}</td></tr>`
     : `<tr><td><span class="sku-mono">${p.sku}</span></td><td colspan="4" style="color:var(--danger)">ไม่พบ SKU นี้</td></tr>`
   ).join('');
   el.innerHTML = `<div class="card" style="padding:0;overflow:hidden"><table class="pricing-table">
@@ -419,6 +464,8 @@ function saveSettings() {
   showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
   // Reload metadata from Sheets with new URL
   loadMetadata(false);
+  // Reload metadata from Sheets with new URL
+  loadMetadata(false);
 }
 
 function updateUserDisplay() {
@@ -443,6 +490,7 @@ async function testApi() {
   res.className = 'api-test-result';
   res.textContent = 'กำลังทดสอบ...';
   try {
+    const r = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
     const r = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
     const d = await r.json();
     res.className = 'api-test-result success';
@@ -485,7 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-add-bom-item').addEventListener('click', addBomItem);
   document.getElementById('btn-add-bom-service').addEventListener('click', addBomService);
   document.getElementById('btn-generate-bom').addEventListener('click', generateBOM);
-  document.querySelector('.remove-bom-item')?.addEventListener('click', function() { this.closest('.bom-item-row')?.remove(); });
+  document.querySelector('.remove-bom-item')?.addEventListener('click', function () { this.closest('.bom-item-row')?.remove(); });
 
   // Proposal
   document.getElementById('btn-save-proposal').addEventListener('click', saveProposal);
@@ -497,6 +545,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
   document.getElementById('btn-test-api').addEventListener('click', testApi);
   document.getElementById('btn-refresh-data')?.addEventListener('click', () => loadMetadata(false));
+  document.getElementById('btn-refresh-data')?.addEventListener('click', () => loadMetadata(false));
 
   // Init
   loadSettings();
@@ -505,6 +554,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-fill prepared_by
   document.getElementById('bom-prepared-by').value = state.userName;
   document.getElementById('prop-prepared-by').value = state.userName;
+
+  // Silently load metadata if API already configured
+  loadMetadata(true);
 
   // Silently load metadata if API already configured
   loadMetadata(true);
