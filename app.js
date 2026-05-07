@@ -5,6 +5,7 @@ const state = {
   userRole: localStorage.getItem('si_user_role') || 'sales',
   compareSkus: [],
   theme: localStorage.getItem('si_theme') || 'dark',
+  metadata: null,       // cached metadata from Sheets
 };
 
 // ── THEME ──────────────────────────────────────────
@@ -26,9 +27,12 @@ async function callApi(action, params) {
   if (!state.apiUrl) { showToast('กรุณาตั้งค่า API URL ก่อน', 'error'); navigate('settings'); throw new Error('No API URL'); }
   showLoading(`กำลังเรียก ${action}...`);
   try {
+    // Apps Script requires text/plain to avoid CORS preflight (OPTIONS) rejection.
+    // redirect:'follow' is needed because Apps Script 302-redirects POST to googleusercontent.com
     const res = await fetch(state.apiUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action, params }),
     });
     const data = await res.json();
@@ -63,6 +67,46 @@ function showLoading(text = 'กำลังโหลด...') {
   document.getElementById('loading-overlay').style.display = 'flex';
 }
 function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
+
+// ── METADATA / REFRESH ─────────────────────────────
+async function loadMetadata(silent = false) {
+  if (!state.apiUrl) return;
+  try {
+    if (!silent) showLoading('กำลัง Sync ข้อมูลจาก Sheets...');
+    const data = await callApi('getMetadata', {});
+    state.metadata = data;
+    populateFilterDropdowns(data);
+    updateSyncBadge(data);
+    if (!silent) showToast(`Sync สำเร็จ — ${data.product_count} สินค้า (${data.synced_at})`, 'success');
+  } catch (e) {
+    if (!silent) showToast('Sync ล้มเหลว: ' + e.message, 'error');
+  }
+}
+
+function populateFilterDropdowns(data) {
+  // Rebuild each select, keeping the first "ทั้งหมด" option
+  const maps = [
+    { id: 'filter-category', items: data.categories, label: 'ทุก Category' },
+    { id: 'filter-vendor',   items: data.vendors,    label: 'ทุก Vendor' },
+    { id: 'filter-segment',  items: data.segments,   label: 'ทุก Segment' },
+  ];
+  maps.forEach(({ id, items, label }) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = `<option value="">${label}</option>` +
+      items.map(v => `<option value="${v}"${v === current ? ' selected' : ''}>${v}</option>`).join('');
+  });
+}
+
+function updateSyncBadge(data) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.innerHTML = `
+    <span class="sync-dot">●</span>
+    <span>${data.product_count} สินค้า · Sync ${data.synced_at}</span>`;
+  el.classList.add('synced');
+}
 
 // ── FORMAT ─────────────────────────────────────────
 function fmt(n) { return Number(n).toLocaleString('th-TH'); }
@@ -356,6 +400,8 @@ function saveSettings() {
   localStorage.setItem('si_user_role', state.userRole);
   updateUserDisplay();
   showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
+  // Reload metadata from Sheets with new URL
+  loadMetadata(false);
 }
 
 function updateUserDisplay() {
@@ -433,6 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings
   document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
   document.getElementById('btn-test-api').addEventListener('click', testApi);
+  document.getElementById('btn-refresh-data')?.addEventListener('click', () => loadMetadata(false));
 
   // Init
   loadSettings();
@@ -441,4 +488,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-fill prepared_by
   document.getElementById('bom-prepared-by').value = state.userName;
   document.getElementById('prop-prepared-by').value = state.userName;
+
+  // Silently load metadata if API already configured
+  loadMetadata(true);
 });
