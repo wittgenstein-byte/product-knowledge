@@ -380,7 +380,7 @@ async function testApi() {
   res.className = 'api-test-result';
   res.textContent = 'กำลังทดสอบ...';
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
+    const r = await fetch(url, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action: 'searchProducts', params: { query: 'test' } }) });
     const d = await r.json();
     res.className = 'api-test-result success';
     res.textContent = '✓ เชื่อมต่อสำเร็จ — Apps Script ตอบสนองปกติ';
