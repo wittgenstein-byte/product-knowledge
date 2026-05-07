@@ -76,7 +76,11 @@
           <span class="breadcrumb-current" id="breadcrumb-current">ค้นหาสินค้า</span>
         </div>
       </div>
-      <div class="topbar-right">
+        <div class="topbar-right">
+          <button class="btn-refresh" id="btn-refresh-data" title="Sync ข้อมูลจาก Sheets" aria-label="Refresh data">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Sync
+          </button>
         <button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode" title="สลับ Light / Dark mode">
           <svg id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -110,28 +114,18 @@
           <div class="search-filters">
             <select id="filter-category" class="filter-select">
               <option value="">ทุก Category</option>
-              <option value="Switch">Switch</option>
-              <option value="Firewall">Firewall</option>
-              <option value="Wi-Fi AP">Wi-Fi AP</option>
-              <option value="Router">Router</option>
-              <option value="Server">Server</option>
             </select>
             <select id="filter-vendor" class="filter-select">
               <option value="">ทุก Vendor</option>
-              <option value="Cisco">Cisco</option>
-              <option value="HP Aruba">HP Aruba</option>
-              <option value="Fortinet">Fortinet</option>
-              <option value="Palo Alto">Palo Alto</option>
-              <option value="Aruba">Aruba</option>
             </select>
             <input type="number" id="filter-max-price" placeholder="ราคาสูงสุด (THB)" class="filter-input" />
             <select id="filter-segment" class="filter-select">
               <option value="">ทุก Segment</option>
-              <option value="SMB">SMB</option>
-              <option value="mid-market">Mid-market</option>
-              <option value="enterprise">Enterprise</option>
-              <option value="government">Government</option>
             </select>
+          </div>
+          <div class="sync-status" id="sync-status">
+            <span class="sync-dot idle">●</span>
+            <span>ยังไม่ได้ Sync — ตั้งค่า API แล้วกด Sync</span>
           </div>
         </div>
         <div class="results-area" id="search-results-area">
