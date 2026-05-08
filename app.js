@@ -40,6 +40,20 @@ async function callApi(action, params) {
   } finally { hideLoading(); }
 }
 
+// Silent version — no loading overlay (for parallel sub-calls)
+async function callApiRaw(action, params) {
+  if (!state.apiUrl) throw new Error('No API URL');
+  const res = await fetch(state.apiUrl, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, params }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
 // ── NAVIGATION ─────────────────────────────────────
 function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -239,10 +253,31 @@ async function doCompare() {
   const skus = [...document.querySelectorAll('.compare-sku-field')]
     .map(i => i.value.trim()).filter(Boolean);
   if (skus.length < 2) { showToast('ต้องใส่อย่างน้อย 2 SKU', 'error'); return; }
+  if (!state.apiUrl) { showToast('กรุณาตั้งค่า API URL ก่อน', 'error'); navigate('settings'); return; }
   try {
-    const data = await callApi('compareProducts', { skus });
-    renderCompare(data);
-  } catch (e) { showToast(e.message, 'error'); }
+    showLoading('กำลังดึงข้อมูลเปรียบเทียบ...');
+    // Fetch compare + datasheet for each SKU in parallel
+    const [compareData, ...datasheets] = await Promise.all([
+      callApiRaw('compareProducts', { skus }),
+      ...skus.map(sku => callApiRaw('getDatasheet', { sku }).catch(() => ({ found: false, sku }))),
+    ]);
+    hideLoading();
+
+    // Build specs map keyed by SKU from datasheet results
+    const dsMap = {};
+    datasheets.forEach(ds => {
+      const key = ds.sku || ds.params?.sku;
+      if (key) dsMap[key] = ds.specs || {};
+    });
+
+    // Merge: datasheet specs win over compareProducts specs (which are often empty)
+    const products = (compareData.products || []).map(p => ({
+      ...p,
+      specs: { ...(dsMap[p.sku] || {}), ...(p.specs || {}) },
+    }));
+
+    renderCompare({ ...compareData, products });
+  } catch (e) { hideLoading(); showToast(e.message, 'error'); }
 }
 
 function renderCompare(data) {
@@ -250,8 +285,18 @@ function renderCompare(data) {
   const products = data.products || [];
   const dims = ['price_thb', 'availability', 'lead_time_weeks', 'distributor'];
   const dimLabels = { price_thb: 'ราคา (THB)', availability: 'Availability', lead_time_weeks: 'Lead Time (Wk)', distributor: 'Distributor' };
-  const specKeys = ['throughput', 'ports', 'poe_budget_w', 'uplink', 'stacking', 'warranty_years'];
-  const specLabels = { throughput: 'Throughput', ports: 'Ports', poe_budget_w: 'PoE (W)', uplink: 'Uplink', stacking: 'Stacking', warranty_years: 'Warranty (Yr)' };
+
+  // All possible spec fields from getDatasheet — shown only if at least one product has a value
+  const specKeys = [
+    'throughput', 'ports', 'poe_budget_w', 'uplink', 'stacking',
+    'power_w', 'dimensions_mm', 'warranty_years', 'management', 'certifications', 'notes',
+  ];
+  const specLabels = {
+    throughput: 'Throughput', ports: 'Ports', poe_budget_w: 'PoE (W)',
+    uplink: 'Uplink', stacking: 'Stacking', power_w: 'Power (W)',
+    dimensions_mm: 'Dimensions (mm)', warranty_years: 'Warranty (Yr)',
+    management: 'Management', certifications: 'Certifications', notes: 'Notes',
+  };
 
   const headers = products.map(p => `<th>${p.vendor}<br><small style="font-weight:400;color:var(--text-secondary)">${p.model || p.sku}</small></th>`).join('');
   const dimRows = dims.map(k => {
@@ -259,14 +304,22 @@ function renderCompare(data) {
     const cells = vals.map(v => `<td>${k === 'price_thb' ? fmt(v) : v}</td>`).join('');
     return `<tr><td>${dimLabels[k]}</td>${cells}</tr>`;
   }).join('');
+
+  // Only render spec rows that have at least one non-empty value across all products
   const specRows = specKeys.map(k => {
-    const cells = products.map(p => `<td>${(p.specs || {})[k] ?? '-'}</td>`).join('');
+    const vals = products.map(p => (p.specs || {})[k]);
+    if (vals.every(v => !v)) return ''; // skip row if all empty
+    const cells = vals.map(v => `<td>${v ?? '-'}</td>`).join('');
     return `<tr><td>${specLabels[k]}</td>${cells}</tr>`;
-  }).join('');
+  }).filter(Boolean).join('');
+
+  const techSection = specRows
+    ? `<tr><td colspan="${products.length + 1}" style="background:var(--bg-surface);font-weight:700;font-size:11px;color:var(--text-muted);text-transform:uppercase;padding:10px 16px">Technical Specs</td></tr>${specRows}`
+    : `<tr><td colspan="${products.length + 1}" style="color:var(--text-muted);font-size:12px;padding:12px 16px">ไม่มีข้อมูล Technical Specs ใน Sheets — กรุณาเพิ่มข้อมูลในชีต Datasheet</td></tr>`;
 
   el.innerHTML = `<div class="compare-table-wrap"><table class="compare-table">
     <thead><tr><th>รายการ</th>${headers}</tr></thead>
-    <tbody>${dimRows}<tr><td colspan="${products.length + 1}" style="background:var(--bg-surface);font-weight:700;font-size:11px;color:var(--text-muted);text-transform:uppercase">Technical Specs</td></tr>${specRows}</tbody>
+    <tbody>${dimRows}${techSection}</tbody>
   </table></div>`;
 }
 
