@@ -488,15 +488,29 @@ body {
 /* ── AI COMPARE & GLASSMORPHISM ────────────────── */
 .ai-analysis-card {
   margin-top: 20px;
-  background: var(--bg-card);
+  background: rgba(20, 23, 32, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border-top: 3px solid var(--accent) !important;
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35);
   transition: all var(--transition);
   animation: fadeIn .3s ease;
+}
+[data-theme="light"] .ai-analysis-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
 }
 .ai-input-tabs .btn-secondary.active {
   background: var(--accent-glow) !important;
   color: var(--accent-light) !important;
+  border-color: var(--accent) !important;
+}
+[data-theme="light"] .ai-input-tabs .btn-secondary.active {
+  background: rgba(99, 102, 241, 0.1) !important;
+  color: var(--accent) !important;
   border-color: var(--accent) !important;
 }
 .ai-file-dropzone {
@@ -537,6 +551,9 @@ body {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
 }
+[data-theme="light"] .ai-content-body h2 {
+  color: var(--accent) !important;
+}
 .ai-content-body h3 {
   font-size: 14px;
   font-weight: 600;
@@ -565,12 +582,25 @@ body {
   text-align: left;
 }
 .ai-content-body th {
-  background: var(--bg-surface);
+  background: rgba(99, 102, 241, 0.1);
   color: var(--accent-light);
   font-weight: 600;
 }
+[data-theme="light"] .ai-content-body th {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: var(--accent) !important;
+}
 .ai-content-body tr:nth-child(even) td {
   background: rgba(255,255,255,0.015);
+}
+[data-theme="light"] .ai-content-body tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.015) !important;
+}
+[data-theme="light"] .ai-content-body td {
+  color: var(--text-primary) !important;
+}
+[data-theme="light"] .ai-analysis-card h3 {
+  color: var(--accent) !important;
 }
 
 /* ── RESPONSIVE ──────────────────────────────────── */
