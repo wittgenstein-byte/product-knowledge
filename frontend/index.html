@@ -4,11 +4,29 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SI Product Hub — Sales Intelligence Platform</title>
-  <meta name="description" content="ระบบค้นหาสินค้า สร้าง BOM และเขียน Proposal สำหรับทีม Sales และ Pre-sales ของบริษัท System Integrator" />
+  <meta name="description" content="ระบบค้นหาสินค้า ตรวจสอบ Datasheet เปรียบเทียบสินค้า และตรวจราคาสำหรับทีม Sales และ Pre-sales ของบริษัท System Integrator" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <!-- Scripts loaded in dependency order -->
+  <script src="js/services/StateService.js"></script>
+  <script src="js/services/ToastService.js"></script>
+  <script src="js/services/LoadingService.js"></script>
+  <script src="js/services/ApiClient.js"></script>
+  <script src="js/services/LlmService.js"></script>
+  <script src="js/services/NavigationService.js"></script>
+  <script src="js/services/ThemeService.js"></script>
+  <script src="js/Formatters.js"></script>
+  <script src="js/features/SearchFeature.js"></script>
+  <script src="js/features/DatasheetFeature.js"></script>
+  <script src="js/features/CompareFeature.js"></script>
+  <script src="js/features/AiCompareFeature.js"></script>
+  <script src="js/features/PricingFeature.js"></script>
+  <script src="js/features/SettingsFeature.js"></script>
+  <script src="js/features/MetadataManager.js"></script>
+  <script src="js/App.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('si_theme') || 'dark');</script>
 </head>
 <body>
@@ -39,14 +57,22 @@
         <span>เปรียบเทียบ</span>
         <span class="nav-badge" id="compare-badge" style="display:none">0</span>
       </button>
-      <button class="nav-item" data-page="bom" id="nav-bom">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span>สร้าง BOM</span>
+      <button class="nav-item" data-page="ai-compare" id="nav-ai-compare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="4" width="16" height="16" rx="2"/>
+          <rect x="9" y="9" width="6" height="6"/>
+          <line x1="9" y1="1" x2="9" y2="4"/>
+          <line x1="15" y1="1" x2="15" y2="4"/>
+          <line x1="9" y1="20" x2="9" y2="23"/>
+          <line x1="15" y1="20" x2="15" y2="23"/>
+          <line x1="20" y1="9" x2="23" y2="9"/>
+          <line x1="20" y1="15" x2="23" y2="15"/>
+          <line x1="1" y1="9" x2="4" y2="9"/>
+          <line x1="1" y1="15" x2="4" y2="15"/>
+        </svg>
+        <span>AI เปรียบเทียบ</span>
       </button>
-      <button class="nav-item" data-page="proposal" id="nav-proposal">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        <span>Proposal</span>
-      </button>
+
       <button class="nav-item" data-page="pricing" id="nav-pricing">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
         <span>ตรวจราคา</span>
@@ -217,122 +243,94 @@
         </div>
       </section>
 
-      <!-- PAGE: BOM -->
-      <section class="page" id="page-bom">
+      <!-- PAGE: AI COMPARE -->
+      <section class="page" id="page-ai-compare">
         <div class="page-header">
-          <h1>สร้าง BOM</h1>
-          <p>สร้าง Bill of Materials และบันทึกลง Google Sheets</p>
+          <h1>AI เปรียบเทียบและวิเคราะห์เชิงกลยุทธ์</h1>
+          <p>วิเคราะห์เปรียบเทียบสเปกทางเทคนิคด้วยพลังของ LLM (Gemini) โดยระบุ SKU หรืออัปโหลดไฟล์จำลองข้อมูล</p>
         </div>
-        <div class="bom-layout">
-          <div class="bom-form card">
-            <div class="form-section">
-              <h3 class="form-section-title">ข้อมูลโปรเจกต์</h3>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>ชื่อโปรเจกต์ *</label>
-                  <input type="text" id="bom-project" class="form-input" placeholder="เช่น Office Network - SCG HQ" />
-                </div>
-                <div class="form-group">
-                  <label>ชื่อลูกค้า *</label>
-                  <input type="text" id="bom-customer" class="form-input" placeholder="เช่น บริษัท ABC จำกัด" />
-                </div>
-                <div class="form-group">
-                  <label>จัดทำโดย *</label>
-                  <input type="text" id="bom-prepared-by" class="form-input" placeholder="ชื่อ Sales / Engineer" />
-                </div>
+
+        <div class="card" style="margin-bottom: 20px;">
+          <!-- Dual mode selector -->
+          <div class="ai-input-tabs" style="display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 12px; margin-bottom: 16px;">
+            <button class="btn-secondary active" id="ai-mode-sku" style="padding: 6px 12px; font-size: 12px;">🔍 เลือก SKU จากระบบ</button>
+            <button class="btn-secondary" id="ai-mode-file" style="padding: 6px 12px; font-size: 12px;">📤 อัปโหลดเอกสาร Datasheet (.pdf, .txt, .md)</button>
+          </div>
+
+          <!-- SKU Selection Panel -->
+          <div id="ai-panel-sku" style="display: block;">
+            <div class="compare-sku-inputs" id="ai-sku-inputs-container">
+              <div class="compare-sku-row">
+                <input type="text" class="filter-input compare-sku-field" placeholder="SKU 1" style="flex:1;" />
+              </div>
+              <div class="compare-sku-row">
+                <input type="text" class="filter-input compare-sku-field" placeholder="SKU 2" style="flex:1;" />
               </div>
             </div>
-
-            <div class="form-section">
-              <h3 class="form-section-title">รายการสินค้า (Hardware)</h3>
-              <div id="bom-items-list" class="bom-items-list">
-                <div class="bom-item-row" data-index="0">
-                  <input type="text" class="form-input bom-sku" placeholder="SKU" />
-                  <input type="number" class="form-input bom-qty" placeholder="จำนวน" min="1" value="1" />
-                  <input type="text" class="form-input bom-notes" placeholder="หมายเหตุ" />
-                  <button class="btn-icon remove-bom-item">✕</button>
-                </div>
-              </div>
-              <button class="btn-secondary btn-sm" id="btn-add-bom-item">+ เพิ่มสินค้า</button>
-            </div>
-
-            <div class="form-section">
-              <h3 class="form-section-title">บริการ (Services) <span class="optional-badge">ไม่บังคับ</span></h3>
-              <div id="bom-services-list" class="bom-items-list"></div>
-              <button class="btn-secondary btn-sm" id="btn-add-bom-service">+ เพิ่มบริการ</button>
-            </div>
-
-            <div class="form-actions">
-              <button class="btn-primary btn-lg" id="btn-generate-bom">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                สร้าง BOM
-              </button>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+              <button class="btn-secondary btn-sm" id="btn-ai-add-sku">+ เพิ่ม SKU</button>
+              <button class="btn-secondary btn-sm" id="btn-ai-clear-skus" style="color: var(--danger); border-color: rgba(239,68,68,0.2);">ล้างรายการ</button>
             </div>
           </div>
 
-          <div id="bom-result" class="bom-result-panel">
-            <div class="empty-state"><div class="empty-icon">📋</div><p>กรอกข้อมูลและกด "สร้าง BOM"</p></div>
+          <!-- File Upload Panel -->
+          <div id="ai-panel-file" style="display: none;">
+            <div class="ai-file-dropzone" id="ai-file-dropzone" style="border: 2px dashed var(--border); border-radius: var(--radius); padding: 30px; text-align: center; cursor: pointer; transition: all var(--transition);">
+              <span style="font-size: 32px; display: block; margin-bottom: 10px;">📥</span>
+              <span style="font-size: 13px; font-weight: 600; display: block; color: var(--text-primary);">ลากไฟล์วางที่นี่ หรือคลิกเพื่ออัปโหลด</span>
+              <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">รองรับ PDF, TXT, MD (สูงสุด 4 ไฟล์, ขนาดสูงสุด 10MB)</span>
+              <input type="file" id="ai-file-input" accept=".pdf,.txt,.md" multiple style="display: none;" />
+            </div>
+            <div id="ai-uploaded-files-list" style="margin-top: 14px;">
+              <!-- list of uploaded files chips -->
+            </div>
           </div>
-        </div>
-      </section>
 
-      <!-- PAGE: PROPOSAL -->
-      <section class="page" id="page-proposal">
-        <div class="page-header">
-          <h1>บันทึก Proposal</h1>
-          <p>บันทึก proposal ที่เสร็จแล้วลง Google Sheets</p>
-        </div>
-        <div class="card">
+          <hr style="border: none; border-top: 1px solid var(--border); margin: 20px 0 16px;" />
+
+          <!-- Prompt Customizer and Presets -->
           <div class="form-grid">
             <div class="form-group">
-              <label>ชื่อลูกค้า *</label>
-              <input type="text" id="prop-customer" class="form-input" placeholder="บริษัท ABC จำกัด" />
-            </div>
-            <div class="form-group">
-              <label>ชื่อโปรเจกต์ *</label>
-              <input type="text" id="prop-project" class="form-input" placeholder="Office Network Upgrade" />
-            </div>
-            <div class="form-group">
-              <label>จัดทำโดย *</label>
-              <input type="text" id="prop-prepared-by" class="form-input" placeholder="ชื่อ Sales / Engineer" />
-            </div>
-            <div class="form-group">
-              <label>BOM ID (ถ้ามี)</label>
-              <input type="text" id="prop-bom-id" class="form-input" placeholder="BOM-20240401-xxx" />
+              <label>รูปแบบการวิเคราะห์ (Presets)</label>
+              <select id="ai-preset-select" class="filter-select">
+                <option value="standard">วิเคราะห์เปรียบเทียบจุดเด่น-จุดด้อย (Standard Comparison)</option>
+                <option value="game_theory">วิเคราะห์ประยุกต์ทฤษฎีเกม (Game Theory Strategy)</option>
+                <option value="custom">ระบุคำสั่ง Prompt ด้วยตัวเอง (Custom Prompt)</option>
+              </select>
             </div>
           </div>
-          <div class="form-section">
-            <h3 class="form-section-title">เนื้อหา Proposal</h3>
-            <div class="form-group">
-              <label>Executive Summary *</label>
-              <textarea id="prop-exec-summary" class="form-textarea" rows="4" placeholder="สรุปปัญหาของลูกค้า สิ่งที่เราเสนอ และประโยชน์ที่ได้รับ..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>Understanding (เข้าใจ Environment ลูกค้า)</label>
-              <textarea id="prop-understanding" class="form-textarea" rows="4" placeholder="แสดงว่าเข้าใจ environment และ pain points ของลูกค้า..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>Solution Architecture</label>
-              <textarea id="prop-solution" class="form-textarea" rows="5" placeholder="อธิบาย architecture และการเชื่อมโยง component กับ requirement..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>Recommendation</label>
-              <textarea id="prop-recommendation" class="form-textarea" rows="4" placeholder="ทำไมเลือกยี่ห้อ/รุ่นนี้ และทางเลือกที่พิจารณาแล้วปฏิเสธ..."></textarea>
-            </div>
-            <div class="form-group">
-              <label>Next Steps</label>
-              <textarea id="prop-next-steps" class="form-textarea" rows="3" placeholder="ขั้นตอนถัดไปและ deadline..."></textarea>
-            </div>
+
+          <!-- Custom prompt field (hidden by default) -->
+          <div class="form-group mt-16" id="ai-custom-prompt-wrapper" style="display: none;">
+            <label>ระบุคำสั่ง Prompt ที่คุณต้องการให้ AI วิเคราะห์</label>
+            <textarea id="ai-custom-prompt" class="form-textarea" rows="4" placeholder="เช่น 'ช่วยวิเคราะห์สเปกสองตัวนี้ในแง่ความเสถียรสำหรับการใช้งานในระบบกล้องวงจรปิดขนาดใหญ่...'"></textarea>
           </div>
-          <div class="form-actions">
-            <button class="btn-primary btn-lg" id="btn-save-proposal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              บันทึก Proposal
+
+          <div style="margin-top: 20px;">
+            <button class="btn-primary" id="btn-ai-submit" style="background: linear-gradient(135deg, var(--accent), #8b5cf6); padding: 11px 24px; font-size: 13px; width: 100%; justify-content: center;">
+              🤖 เริ่มต้นการวิเคราะห์ด้วย AI
             </button>
           </div>
         </div>
-        <div id="proposal-result" class="results-area mt-16"></div>
+
+        <!-- AI Output container -->
+        <div id="ai-report-container" style="display: none; margin-top: 20px;">
+          <div class="card ai-analysis-card" style="border-top: 3px solid var(--accent); background: rgba(20, 23, 32, 0.45); backdrop-filter: blur(8px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🤖</span>
+                <h3 style="font-size: 14px; font-weight: 700; color: var(--accent-light);">ผลรายงานการวิเคราะห์เปรียบเทียบเชิงวิชาชีพโดย AI</h3>
+              </div>
+              <span style="font-size: 10px; font-weight: 600; color: var(--text-muted); background: var(--bg-input); padding: 3px 8px; border-radius: 99px; border: 1px solid var(--border); text-transform: uppercase;">Gemini Analyst</span>
+            </div>
+            <div id="ai-report-content" class="ai-content-body" style="font-size: 13px; color: var(--text-primary);">
+              <!-- dynamic html contents -->
+            </div>
+          </div>
+        </div>
       </section>
+
+
 
       <!-- PAGE: PRICING -->
       <section class="page" id="page-pricing">
@@ -372,6 +370,26 @@
             <div id="api-test-result" class="api-test-result" style="display:none"></div>
           </div>
           <div class="settings-section">
+            <h3>ตั้งค่า LLM API (AI)</h3>
+            <div class="form-group">
+              <label>LLM API Base URL *</label>
+              <input type="url" id="settings-llm-url" class="form-input" placeholder="https://gen.ai.kku.ac.th/api/v1" />
+              <p class="field-hint">เว็บบริการ LLM API เช่น https://gen.ai.kku.ac.th/api/v1 หรืออื่นๆ</p>
+            </div>
+            <div class="form-grid mt-16">
+              <div class="form-group">
+                <label>API Key</label>
+                <input type="password" id="settings-llm-key" class="form-input" placeholder="ใส่ API Key (ถ้ามี)" />
+              </div>
+              <div class="form-group">
+                <label>Model Name</label>
+                <input type="text" id="settings-llm-model" class="form-input" placeholder="gemini-2.5-flash-lite" />
+              </div>
+            </div>
+            <button class="btn-secondary mt-16" id="btn-test-llm">ทดสอบการเชื่อมต่อ AI</button>
+            <div id="llm-test-result" class="api-test-result" style="display:none"></div>
+          </div>
+          <div class="settings-section">
             <h3>ข้อมูลผู้ใช้</h3>
             <div class="form-grid">
               <div class="form-group">
@@ -408,6 +426,5 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
 </body>
 </html>
