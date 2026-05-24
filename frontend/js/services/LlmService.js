@@ -22,8 +22,7 @@ class LlmService {
         messages: [
           { role: 'system', content: 'You are a test agent.' },
           { role: 'user', content: 'Respond with exactly one word: Success' }
-        ],
-        max_tokens: 10
+        ]
       })
     });
 
@@ -33,7 +32,19 @@ class LlmService {
     }
 
     const data = await response.json();
-    return data.choices[0].message.content.trim();
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
+    }
+    if (!data.choices || data.choices.length === 0 || !data.choices[0].message) {
+      throw new Error(`รูปแบบ Response ไม่ถูกต้อง: ${JSON.stringify(data)}`);
+    }
+    
+    const content = data.choices[0].message.content;
+    if (content === null || content === undefined) {
+      return 'เชื่อมต่อสำเร็จ (ข้อความตอบกลับเป็น null)';
+    }
+    
+    return String(content).trim();
   }
 
   async query(systemPrompt, userPrompt, { silent = false } = {}) {
