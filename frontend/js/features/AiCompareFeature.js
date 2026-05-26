@@ -231,9 +231,15 @@ class AiCompareFeature {
 
     const preset = document.getElementById('ai-preset-select').value;
     const customPrompt = document.getElementById('ai-custom-prompt').value.trim();
-    
+
+    // Game theory presets use dedicated HTML system prompt + raw HTML rendering
+    const GAME_THEORY_PRESETS = new Set(['game_theory', 'payoff_matrix', 'nash_equilibrium', 'buyer_seller_game']);
+    const isGameTheory = GAME_THEORY_PRESETS.has(preset);
+
     let userPrompt = '';
-    let systemPrompt = this._llm.buildCompareSystemPrompt();
+    let systemPrompt = isGameTheory
+      ? this._llm.buildGameTheorySystemPrompt()
+      : this._llm.buildCompareSystemPrompt();
 
     if (this._inputMode === 'sku') {
       const skuFields = [...document.querySelectorAll('#ai-panel-sku .compare-sku-field')];
@@ -265,6 +271,12 @@ class AiCompareFeature {
 
         if (preset === 'game_theory') {
           userPrompt = this._llm.buildGameTheoryComparePrompt(products);
+        } else if (preset === 'payoff_matrix') {
+          userPrompt = this._llm.buildPayoffMatrixPrompt(products);
+        } else if (preset === 'nash_equilibrium') {
+          userPrompt = this._llm.buildNashEquilibriumPrompt(products);
+        } else if (preset === 'buyer_seller_game') {
+          userPrompt = this._llm.buildBuyerSellerGamePrompt(products);
         } else if (preset === 'custom') {
           if (!customPrompt) {
             this._toast.show('กรุณาระบุคำสั่ง Prompt ที่คุณต้องการให้ AI วิเคราะห์', 'error');
@@ -297,19 +309,59 @@ class AiCompareFeature {
         }
         const fileContext = this._uploadedFiles.map((f, i) => `ไฟล์ที่ ${i+1}: ${f.name}\n${f.content}`).join('\n\n');
         userPrompt = `เนื้อหาข้อมูลเอกสารที่ได้รับ:\n\n${fileContext}\n\nคำสั่งที่ให้ดำเนินการวิเคราะห์:\n${customPrompt}`;
+      } else if (isGameTheory) {
+        // For file mode with game theory: pass file content as product context
+        const fileContext = this._uploadedFiles.map((f, i) => `เอกสาร ${i+1}: ${f.name}\n${f.content.substring(0, 6000)}`).join('\n\n---\n\n');
+        userPrompt = `ใช้ข้อมูลจากเอกสาร Datasheet ต่อไปนี้เพื่อวิเคราะห์:\n\n${fileContext}\n\nดำเนินการวิเคราะห์ตาม preset ที่กำหนดในระบบ`;
       } else {
         userPrompt = this._llm.buildDocumentComparePrompt(this._uploadedFiles);
       }
     }
 
-    // Call LLM API
+    // Call LLM API and render output
     try {
       const response = await this._llm.query(systemPrompt, userPrompt);
       const container = document.getElementById('ai-report-container');
       const contentEl = document.getElementById('ai-report-content');
+      const reportCard = container?.querySelector('.ai-analysis-card');
 
       if (contentEl && container) {
-        contentEl.innerHTML = Formatters.markdown(response);
+        if (isGameTheory) {
+          // Strip accidental markdown code fences (```html ... ```) if model wraps output
+          const cleaned = response
+            .replace(/^```(?:html)?\s*/i, '')
+            .replace(/\s*```\s*$/i, '')
+            .trim();
+
+          contentEl.classList.add('gt-report');
+          contentEl.classList.remove('ai-content-body');
+          contentEl.innerHTML = cleaned;
+
+          // Swap header label to show preset name
+          const presetLabels = {
+            game_theory:      '🎮 Full Game Theory Strategy',
+            payoff_matrix:    '📊 Payoff Matrix Analysis',
+            nash_equilibrium: '⚖️ Nash Equilibrium & Dominant Strategy',
+            buyer_seller_game:'🤝 Buyer-Seller Negotiation Game',
+          };
+          const labelEl = container.querySelector('h3');
+          if (labelEl) labelEl.textContent = presetLabels[preset] || 'Game Theory Analysis';
+
+          const badgeEl = container.querySelector('span[style*="uppercase"]');
+          if (badgeEl) badgeEl.textContent = 'Game Theory';
+
+        } else {
+          contentEl.classList.remove('gt-report');
+          contentEl.classList.add('ai-content-body');
+          contentEl.innerHTML = Formatters.markdown(response);
+
+          const labelEl = container.querySelector('h3');
+          if (labelEl) labelEl.textContent = 'ผลรายงานการวิเคราะห์เปรียบเทียบเชิงวิชาชีพโดย AI';
+
+          const badgeEl = container.querySelector('span[style*="uppercase"]');
+          if (badgeEl) badgeEl.textContent = 'Gemini Analyst';
+        }
+
         container.style.display = 'block';
         container.scrollIntoView({ behavior: 'smooth' });
       }

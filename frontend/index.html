@@ -294,7 +294,12 @@
               <label>รูปแบบการวิเคราะห์ (Presets)</label>
               <select id="ai-preset-select" class="filter-select">
                 <option value="standard">วิเคราะห์เปรียบเทียบจุดเด่น-จุดด้อย (Standard Comparison)</option>
-                <option value="game_theory">วิเคราะห์ประยุกต์ทฤษฎีเกม (Game Theory Strategy)</option>
+                <optgroup label="🎮 Game Theory Presets">
+                  <option value="game_theory">วิเคราะห์ทฤษฎีเกมแบบสมบูรณ์ (Full Game Theory Strategy)</option>
+                  <option value="payoff_matrix">เปรียบเทียบ Payoff Matrix ตามสถานการณ์ลูกค้า</option>
+                  <option value="nash_equilibrium">Nash Equilibrium &amp; Dominant Strategy Analysis</option>
+                  <option value="buyer_seller_game">Buyer vs. Seller Negotiation Game (กลยุทธ์เจรจาต่อรอง)</option>
+                </optgroup>
                 <option value="custom">ระบุคำสั่ง Prompt ด้วยตัวเอง (Custom Prompt)</option>
               </select>
             </div>
