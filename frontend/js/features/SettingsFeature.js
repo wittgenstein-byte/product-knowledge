@@ -57,7 +57,7 @@ class SettingsFeature {
       });
       await r.json();
       res.className = 'api-test-result success';
-      res.textContent = '✓ เชื่อมต่อสำเร็จ — Apps Script ตอบสนองปกติ';
+      res.textContent = '✓ เชื่อมต่อสำเร็จ — API ตอบสนองปกติ';
     } catch (e) {
       res.className = 'api-test-result error';
       res.textContent = '✕ เชื่อมต่อไม่ได้: ' + e.message;

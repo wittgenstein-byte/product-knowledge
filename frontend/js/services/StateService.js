@@ -1,7 +1,7 @@
 class StateService {
   constructor() {
     this._data = {
-      apiUrl: localStorage.getItem('si_api_url') || '',
+      apiUrl: localStorage.getItem('si_api_url') || 'http://localhost:4000/api',
       userName: localStorage.getItem('si_user_name') || 'Sales',
       userRole: localStorage.getItem('si_user_role') || 'sales',
       theme: localStorage.getItem('si_theme') || 'dark',
