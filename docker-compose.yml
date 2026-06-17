@@ -28,16 +28,14 @@ services:
       - "4001:4001"
     depends_on:
       - mysql
+    env_file:
+      - ./backend/.env
     environment:
       - PORT=4001
       - DB_HOST=mysql
       - DB_USER=si_user
       - DB_PASSWORD=si_password
       - DB_NAME=si_product_hub
-      # Change these to your actual credentials or configure them in a local .env file
-      - GOOGLE_SHEETS_ID=${GOOGLE_SHEETS_ID}
-      - GOOGLE_SERVICE_ACCOUNT_KEY=${GOOGLE_SERVICE_ACCOUNT_KEY}
-      - GOOGLE_SERVICE_ACCOUNT_KEY_PATH=${GOOGLE_SERVICE_ACCOUNT_KEY_PATH}
     networks:
       - si_network
 
