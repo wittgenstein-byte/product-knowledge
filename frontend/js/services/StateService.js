@@ -1,10 +1,23 @@
 class StateService {
   constructor() {
+    let defaultApiUrl = 'http://localhost:4000/api';
+    if (window.location.protocol.startsWith('http')) {
+      defaultApiUrl = window.location.origin + '/si-api/';
+    }
+
+    let savedApiUrl = localStorage.getItem('si_api_url');
+    // หากเปิดผ่าน Server จริง แต่เครื่องจำค่าเป็น localhost ให้ล้างและบังคับใช้ของ Server จริงทันที
+    if (window.location.protocol.startsWith('http') && 
+        !window.location.hostname.includes('localhost') && 
+        !window.location.hostname.includes('127.0.0.1')) {
+      if (!savedApiUrl || savedApiUrl.includes('localhost') || savedApiUrl.includes('127.0.0.1')) {
+        savedApiUrl = window.location.origin + '/si-api/';
+        localStorage.setItem('si_api_url', savedApiUrl); // บันทึกทับทันทีเพื่อไม่ให้ค้าง
+      }
+    }
+
     this._data = {
-      apiUrl: localStorage.getItem('si_api_url') || 
-              (window.location.protocol.startsWith('http') 
-                ? (window.location.origin + '/si-api/') 
-                : 'http://localhost:4000/api'),
+      apiUrl: savedApiUrl || defaultApiUrl,
       userName: localStorage.getItem('si_user_name') || 'Sales',
       userRole: localStorage.getItem('si_user_role') || 'sales',
       theme: localStorage.getItem('si_theme') || 'dark',
