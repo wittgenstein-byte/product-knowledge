@@ -1,7 +1,10 @@
 class StateService {
   constructor() {
     this._data = {
-      apiUrl: localStorage.getItem('si_api_url') || 'http://localhost:4000/api',
+      apiUrl: localStorage.getItem('si_api_url') || 
+              (window.location.protocol.startsWith('http') 
+                ? (window.location.origin + '/si-api/') 
+                : 'http://localhost:4000/api'),
       userName: localStorage.getItem('si_user_name') || 'Sales',
       userRole: localStorage.getItem('si_user_role') || 'sales',
       theme: localStorage.getItem('si_theme') || 'dark',
